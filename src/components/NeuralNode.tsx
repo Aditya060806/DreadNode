@@ -1,180 +1,257 @@
-
-import { useState, useEffect, useRef } from 'react';
-import { NodeData } from '../types/NodeData';
+import React, { useState } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { Node } from '../store/simulationStore';
 
 interface NeuralNodeProps {
-  node: NodeData;
-  onNodeClick: (node: NodeData) => void;
+  node: Node;
+  onNodeClick: (node: Node) => void;
   isUnderAttack?: boolean;
   reflexTrigger?: boolean;
 }
 
 const NeuralNode = ({ node, onNodeClick, isUnderAttack = false, reflexTrigger = false }: NeuralNodeProps) => {
+  const controls = useAnimation();
+  const isCore = node.id.includes('core');
+  // Consistent sizing for better alignment
+  const size = isCore ? 'w-14 h-14' : 'w-10 h-10';
   const [showDetails, setShowDetails] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
-  const [heartbeatPhase, setHeartbeatPhase] = useState(0);
-  const nodeRef = useRef<HTMLDivElement>(null);
-  
-  // Unique heartbeat for each node
-  const heartbeatOffset = useRef(Math.random() * 3000).current;
-  
-  useEffect(() => {
-    const heartbeatInterval = setInterval(() => {
-      setHeartbeatPhase(prev => (prev + 1) % 2);
-    }, 1500 + heartbeatOffset);
-    
-    return () => clearInterval(heartbeatInterval);
-  }, [heartbeatOffset]);
-  
-  // Attack reaction effects
-  useEffect(() => {
+
+  // Animate pulse/flicker/shake
+  React.useEffect(() => {
     if (node.status === 'attacked' || isUnderAttack) {
-      setIsShaking(true);
-      const shakeTimer = setTimeout(() => setIsShaking(false), 2000);
-      return () => clearTimeout(shakeTimer);
+      controls.start({
+        scale: [1, 1.15, 0.95, 1.1, 1],
+        filter: [
+          'brightness(1) drop-shadow(0 0 8px #f00)',
+          'brightness(1.3) drop-shadow(0 0 24px #f00)',
+          'brightness(0.8) drop-shadow(0 0 12px #f00)',
+          'brightness(1.2) drop-shadow(0 0 32px #f00)',
+          'brightness(1) drop-shadow(0 0 8px #f00)'
+        ],
+        transition: { duration: 0.7, repeat: 1 }
+      });
+    } else if (node.status === 'healing') {
+      controls.start({
+        scale: [1, 1.08, 1],
+        filter: [
+          'brightness(1) drop-shadow(0 0 8px #ff0)',
+          'brightness(1.2) drop-shadow(0 0 24px #ff0)',
+          'brightness(1) drop-shadow(0 0 8px #ff0)'
+        ],
+        transition: { duration: 1.2, repeat: 1 }
+      });
+    } else if (node.status === 'adapting') {
+      controls.start({
+        scale: [1, 1.12, 1],
+        filter: [
+          'brightness(1) drop-shadow(0 0 8px #0ff)',
+          'brightness(1.3) drop-shadow(0 0 24px #0ff)',
+          'brightness(1) drop-shadow(0 0 8px #0ff)'
+        ],
+        transition: { duration: 1.1, repeat: 1 }
+      });
+    } else {
+      controls.start({ scale: 1, filter: 'brightness(1)' });
     }
   }, [node.status, isUnderAttack]);
-  
-  // Reflex trigger effect
-  useEffect(() => {
-    if (reflexTrigger && nodeRef.current) {
-      nodeRef.current.style.animation = 'reflex-pulse 0.5s ease-out';
-      setTimeout(() => {
-        if (nodeRef.current) {
-          nodeRef.current.style.animation = '';
-        }
-      }, 500);
-    }
-  }, [reflexTrigger]);
 
-  const getStatusColor = (status: string) => {
+  function getStatusColor(status: string) {
     switch (status) {
-      case 'healthy': return 'emerald';
-      case 'healing': return 'amber';
-      case 'attacked': return 'red';
-      case 'adapting': return 'cyan';
-      default: return 'gray';
+      case 'healthy': return { name: 'emerald', from: '#34d399', to: '#059669', border: '#6ee7b7' };
+      case 'healing': return { name: 'amber', from: '#fbbf24', to: '#d97706', border: '#fcd34d' };
+      case 'attacked': return { name: 'red', from: '#f87171', to: '#dc2626', border: '#fca5a5' };
+      case 'adapting': return { name: 'cyan', from: '#22d3ee', to: '#0891b2', border: '#67e8f9' };
+      case 'quarantined': return { name: 'purple', from: '#a78bfa', to: '#7c3aed', border: '#c4b5fd' };
+      case 'honeypot': return { name: 'pink', from: '#f472b6', to: '#db2777', border: '#f9a8d4' };
+      case 'overloaded': return { name: 'orange', from: '#fb923c', to: '#ea580c', border: '#fdba74' };
+      case 'maintenance': return { name: 'blue', from: '#60a5fa', to: '#2563eb', border: '#93c5fd' };
+      default: return { name: 'gray', from: '#9ca3af', to: '#4b5563', border: '#d1d5db' };
     }
-  };
-
-  const getStatusGlow = (status: string) => {
-    const color = getStatusColor(status);
-    return `drop-shadow-[0_0_15px_rgb(var(--${color}-500))] drop-shadow-[0_0_30px_rgb(var(--${color}-500)/0.5)]`;
-  };
-
-  const color = getStatusColor(node.status);
-  const isCore = node.id.includes('core');
-  const size = isCore ? 'w-16 h-16' : 'w-12 h-12';
+  }
+  
+  const colorMap = getStatusColor(node.status);
 
   return (
-    <>
-      <div
-        ref={nodeRef}
-        className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 hover:scale-110 ${
-          isShaking ? 'animate-shake' : ''
-        } ${heartbeatPhase ? 'heartbeat-glow' : ''}`}
-        style={{ left: `${node.x}%`, top: `${node.y}%` }}
-        onClick={() => {
-          onNodeClick(node);
-          setShowDetails(!showDetails);
+    <motion.div
+      animate={controls}
+      initial={{ scale: 1, filter: 'brightness(1)' }}
+      whileHover={{ scale: 1.18, filter: 'brightness(1.3)' }}
+      className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 ${size}`}
+      style={{ 
+        // Node center is at (x%, y%) due to transform centering
+        // This ensures perfect alignment with line endpoints
+        left: `${node.x}%`, 
+        top: `${node.y}%`, 
+        zIndex: 30 // Render nodes above connections for proper layering
+      }}
+      onClick={e => {
+        // Ripple effect
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        ripple.style.left = `${e.nativeEvent.offsetX}px`;
+        ripple.style.top = `${e.nativeEvent.offsetY}px`;
+        e.currentTarget.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+        onNodeClick(node);
+      }}
+      onMouseEnter={() => setShowDetails(true)}
+      onMouseLeave={() => setShowDetails(false)}
+    >
+      {/* Outer pulse ring - smaller for better alignment visibility */}
+      <motion.div
+        className="absolute inset-0 rounded-full border-2"
+        style={{ borderColor: colorMap.border }}
+        animate={{ opacity: [0.7, 0.2, 0.7], scale: [1, 1.1, 1] }}
+        transition={{ duration: 2.2, repeat: Infinity }}
+      />
+      {/* Firewall shield */}
+      {node.firewallActive && (
+        <motion.div
+          className="absolute inset-0 rounded-full border-4 border-cyan-400"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.6, 0.9, 0.6],
+          }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          style={{
+            boxShadow: `0 0 ${node.firewallStrength * 2}px rgba(6, 182, 212, ${node.firewallStrength / 100})`,
+          }}
+        />
+      )}
+      
+      {/* Honeypot glow */}
+      {node.isHoneypot && (
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-pink-400"
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.8, 1, 0.8],
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{
+            boxShadow: '0 0 30px rgba(244, 114, 182, 0.8)',
+          }}
+        />
+      )}
+      
+      {/* Healing wave indicator */}
+      {node.healingWaveProgress > 0 && (
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-emerald-400"
+          animate={{
+            scale: [1, 1 + node.healingWaveProgress / 100, 1],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
+      )}
+      
+      {/* Main node body */}
+      <motion.div
+        className="relative w-full h-full rounded-full shadow-cyberpunk border-2"
+        style={{
+          background: node.isHoneypot 
+            ? 'linear-gradient(to bottom right, #f472b6, #db2777)'
+            : node.isPatchNode
+            ? 'linear-gradient(to bottom right, #22d3ee, #2563eb)'
+            : `linear-gradient(to bottom right, ${colorMap.from}, ${colorMap.to})`,
+          borderColor: node.isHoneypot ? '#f9a8d4' : node.isPatchNode ? '#67e8f9' : colorMap.border,
         }}
-        onMouseEnter={() => setShowDetails(true)}
-        onMouseLeave={() => setShowDetails(false)}
+        animate={{ 
+          boxShadow: node.isHoneypot 
+            ? ['0 0 20px rgba(244, 114, 182, 0.8)', '0 0 40px rgba(244, 114, 182, 1)', '0 0 20px rgba(244, 114, 182, 0.8)']
+            : [
+                `0 0 16px 4px ${colorMap.from}99`,
+                `0 0 32px 8px ${colorMap.to}CC`,
+                `0 0 16px 4px ${colorMap.from}99`
+              ]
+        }}
+        transition={{ duration: 2.5, repeat: Infinity }}
       >
-        {/* Node Core */}
-        <div className={`${size} relative`}>
-          {/* Outer pulse ring */}
-          <div className={`absolute inset-0 rounded-full border-2 border-${color}-500 animate-ping opacity-75`} />
-          
-          {/* Breathing ring */}
+        {/* Health indicator */}
+        <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-black border border-gray-600">
           <div 
-            className={`absolute inset-0 rounded-full border border-${color}-400 animate-pulse`}
-            style={{ animation: 'breathe 3s ease-in-out infinite' }}
-          />
-          
-          {/* Main node body */}
-          <div 
-            className={`relative w-full h-full rounded-full bg-gradient-to-br from-${color}-400 to-${color}-600 border border-${color}-300 ${getStatusGlow(node.status)}`}
-            style={{
-              background: `radial-gradient(circle at 30% 30%, rgb(var(--${color}-400)), rgb(var(--${color}-600)))`,
-              filter: `${getStatusGlow(node.status)} brightness(${node.health / 100 + 0.5})`
+            className="w-full h-full rounded-full"
+            style={{ 
+              backgroundColor: node.isHoneypot ? '#f472b6' : colorMap.from,
+              opacity: node.health / 100 
             }}
-          >
-            {/* Inner neural activity */}
-            <div className={`absolute inset-2 rounded-full bg-gradient-to-tr from-${color}-300/30 to-transparent animate-pulse`} />
+          />
+        </div>
+        
+        {/* Immune indicator */}
+        {node.immuneToAttacks.length > 0 && (
+          <div className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        )}
+      </motion.div>
+      {showDetails && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 p-4 bg-black/95 border border-cyan-500 rounded-lg backdrop-blur-sm min-w-64 z-50 shadow-cyberpunk" style={{ minWidth: 240, maxWidth: 320 }}>
+          <div className="text-xs font-mono space-y-2">
+            <div className={`text-cyan-300 font-bold text-sm`}>{node.id.toUpperCase()}</div>
+            <div className="text-gray-300">Role: <span className="text-blue-400">{node.role}</span></div>
+            <div className="text-gray-300">Status: <span className={`text-cyan-400`}>{node.status}</span></div>
+            <div className="text-gray-300">Health: <span className="text-emerald-400">{Math.round(node.health)}%</span></div>
+            <div className="text-gray-300">Pain: <span className="text-pink-400">{Math.round(node.pain)}%</span></div>
+            <div className="text-gray-300">Uptime: <span className="text-amber-400">{Math.round(node.uptime)}%</span></div>
             
-            {/* Health indicator */}
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-black border border-gray-600">
-              <div 
-                className={`w-full h-full rounded-full bg-${color}-400`}
-                style={{ opacity: node.health / 100 }}
-              />
+            {/* Performance Metrics */}
+            <div className="border-t border-gray-600 pt-2 mt-2">
+              <div className="text-cyan-300 font-semibold mb-1">Performance</div>
+              <div className="text-gray-300">CPU: <span className="text-orange-400">{Math.round(node.metrics.cpuUsage)}%</span></div>
+              <div className="text-gray-300">Memory: <span className="text-purple-400">{Math.round(node.metrics.memoryUsage)}%</span></div>
+              <div className="text-gray-300">Latency: <span className="text-yellow-400">{Math.round(node.metrics.networkLatency)}ms</span></div>
+              <div className="text-gray-300">Throughput: <span className="text-green-400">{Math.round(node.metrics.throughput)}/s</span></div>
+              <div className="text-gray-300">Error Rate: <span className="text-red-400">{node.metrics.errorRate.toFixed(2)}%</span></div>
             </div>
+
+            {/* Network Info */}
+            <div className="border-t border-gray-600 pt-2">
+              <div className="text-cyan-300 font-semibold mb-1">Network</div>
+              <div className="text-gray-300">Region: <span className="text-blue-300">{node.region}</span></div>
+              <div className="text-gray-300">Layer: <span className="text-cyan-300">{node.layer}</span></div>
+              <div className="text-gray-300">Connections: <span className="text-green-300">{node.connections.length}</span></div>
+              <div className="text-gray-300">Strategy: <span className="text-cyan-300">{node.learningStrategy}</span></div>
+            </div>
+
+            {/* Status Indicators */}
+            {node.status === 'healing' && (
+              <div className="text-amber-400 animate-pulse">🔄 Auto-repair active</div>
+            )}
+            {node.status === 'adapting' && (
+              <div className="text-cyan-400 animate-pulse">🧠 Neural optimization</div>
+            )}
+            {node.status === 'attacked' && (
+              <div className="text-red-400 animate-pulse">⚠️ Threat mitigation</div>
+            )}
+            {node.status === 'maintenance' && (
+              <div className="text-blue-400 animate-pulse">🔧 Maintenance mode</div>
+            )}
+            {node.status === 'overloaded' && (
+              <div className="text-orange-400 animate-pulse">⚡ Resource overload</div>
+            )}
           </div>
         </div>
-
-        {/* Node Details Popup */}
-        {showDetails && (
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-black/90 border border-gray-600 rounded-lg backdrop-blur-sm min-w-48 z-50">
-            <div className="text-xs font-mono space-y-1">
-              <div className={`text-${color}-300 font-bold`}>{node.id.toUpperCase()}</div>
-              <div className="text-gray-300">Status: <span className={`text-${color}-400`}>{node.status}</span></div>
-              <div className="text-gray-300">Health: <span className={`text-${color}-400`}>{Math.round(node.health)}%</span></div>
-              <div className="text-gray-300">Connections: {node.connections.length}</div>
-              {node.status === 'healing' && (
-                <div className={`text-${color}-400 animate-pulse`}>🔄 Auto-repair active</div>
-              )}
-              {node.status === 'adapting' && (
-                <div className={`text-${color}-400 animate-pulse`}>🧠 Neural optimization</div>
-              )}
-              {node.status === 'attacked' && (
-                <div className={`text-${color}-400 animate-pulse`}>⚠️ Threat mitigation</div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
+      )}
       <style>{`
-        @keyframes breathe {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 0.7;
-          }
-          50% {
-            transform: scale(1.05);
-            opacity: 1;
-          }
+        .ripple {
+          position: absolute;
+          width: 40px;
+          height: 40px;
+          background: rgba(0,255,255,0.25);
+          border-radius: 50%;
+          pointer-events: none;
+          transform: translate(-50%, -50%);
+          animation: ripple-effect 0.6s linear;
         }
-        
-        @keyframes shake {
-          0%, 100% { transform: translateX(0) translateY(0); }
-          10% { transform: translateX(-2px) translateY(-1px); }
-          20% { transform: translateX(2px) translateY(1px); }
-          30% { transform: translateX(-1px) translateY(-2px); }
-          40% { transform: translateX(1px) translateY(2px); }
-          50% { transform: translateX(-2px) translateY(1px); }
-          60% { transform: translateX(2px) translateY(-1px); }
-          70% { transform: translateX(-1px) translateY(2px); }
-          80% { transform: translateX(1px) translateY(-2px); }
-          90% { transform: translateX(-2px) translateY(-1px); }
+        @keyframes ripple-effect {
+          0% { opacity: 0.7; transform: scale(0.5); }
+          100% { opacity: 0; transform: scale(2.5); }
         }
-        
-        .animate-shake {
-          animation: shake 0.3s ease-in-out infinite;
-        }
-        
-        .heartbeat-glow {
-          filter: brightness(1.2) drop-shadow(0 0 8px currentColor);
-        }
-        
-        @keyframes reflex-pulse {
-          0% { transform: scale(1) translateX(-50%) translateY(-50%); }
-          50% { transform: scale(1.3) translateX(-50%) translateY(-50%); filter: brightness(2); }
-          100% { transform: scale(1) translateX(-50%) translateY(-50%); }
+        .shadow-cyberpunk {
+          box-shadow: 0 0 12px 2px #0ff, 0 0 32px 4px #f0f, 0 0 2px 0 #fff;
         }
       `}</style>
-    </>
+    </motion.div>
   );
 };
 

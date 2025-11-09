@@ -1,94 +1,58 @@
+import React from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Points, PointMaterial } from '@react-three/drei';
+import * as THREE from 'three';
+
+function NeuralParticles() {
+  // Generate random points in a sphere
+  const count = 120;
+  const positions = React.useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      const phi = Math.acos(2 * Math.random() - 1);
+      const theta = 2 * Math.PI * Math.random();
+      const r = 18 + Math.random() * 6;
+      arr.push(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.sin(phi) * Math.sin(theta),
+        r * Math.cos(phi)
+      );
+    }
+    return new Float32Array(arr);
+  }, []);
+  return (
+    <Points positions={positions} frustumCulled={false}>
+      <PointMaterial
+        color="#00fff7"
+        size={0.45}
+        sizeAttenuation
+        depthWrite={false}
+        transparent
+        opacity={0.7}
+      />
+    </Points>
+  );
+}
 
 const NetworkBackground = () => {
   return (
-    <>
-      {/* Breathing digital cortex background */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-black to-cyan-900/20 cortex-breathing" />
-        <div className="neural-grid breathing-grid" />
-        <div className="cortex-pattern" />
-      </div>
-
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-emerald-400 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          />
-        ))}
-      </div>
-
-      <style>{`
-        .neural-grid {
-          background-image: 
-            linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
-          background-size: 50px 50px;
-          animation: grid-pulse 4s ease-in-out infinite;
-        }
-        
-        .breathing-grid {
-          animation: grid-breathe 6s ease-in-out infinite;
-        }
-        
-        .cortex-breathing {
-          animation: cortex-breathe 8s ease-in-out infinite;
-        }
-        
-        .cortex-pattern {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 80% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(239, 68, 68, 0.03) 0%, transparent 30%),
-            radial-gradient(circle at 60% 80%, rgba(245, 158, 11, 0.03) 0%, transparent 30%);
-          animation: cortex-pulse 12s ease-in-out infinite;
-        }
-        
-        @keyframes grid-pulse {
-          0%, 100% { opacity: 0.1; }
-          50% { opacity: 0.3; }
-        }
-        
-        @keyframes grid-breathe {
-          0%, 100% { 
-            transform: scale(1);
-            opacity: 0.1; 
-          }
-          50% { 
-            transform: scale(1.02);
-            opacity: 0.2; 
-          }
-        }
-        
-        @keyframes cortex-breathe {
-          0%, 100% { 
-            filter: brightness(1) hue-rotate(0deg);
-          }
-          33% { 
-            filter: brightness(1.1) hue-rotate(5deg);
-          }
-          66% { 
-            filter: brightness(0.9) hue-rotate(-5deg);
-          }
-        }
-        
-        @keyframes cortex-pulse {
-          0%, 100% { opacity: 0.8; }
-          25% { opacity: 1.2; }
-          50% { opacity: 0.6; }
-          75% { opacity: 1.0; }
-        }
-      `}</style>
-    </>
+    <div className="absolute inset-0 z-0">
+      <Canvas camera={{ position: [0, 0, 32], fov: 60 }} style={{ width: '100vw', height: '100vh', background: 'radial-gradient(ellipse at center, #0ff2, #000 80%)' }}>
+        <ambientLight intensity={0.5} />
+        <pointLight position={[10, 10, 10]} intensity={0.7} color="#0ff" />
+        <NeuralParticles />
+        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
+      </Canvas>
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse at 60% 40%, #0ff3 0%, #000 80%)',
+        mixBlendMode: 'screen',
+        opacity: 0.18
+      }} />
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'repeating-linear-gradient(135deg, #0ff1 0 2px, transparent 2px 20px)',
+        opacity: 0.08
+      }} />
+    </div>
   );
 };
 

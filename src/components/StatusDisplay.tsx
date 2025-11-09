@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 
@@ -22,19 +21,19 @@ const StatusDisplay = ({ isOnline, threatLevel }: StatusDisplayProps) => {
   }, [threatLevel]);
 
   const getThreatColor = () => {
-    if (threatLevel > 70) return 'red';
-    if (threatLevel > 30) return 'amber';
-    return 'emerald';
+    if (threatLevel > 70) return 'text-red-400';
+    if (threatLevel > 30) return 'text-amber-400';
+    return 'text-emerald-400';
   };
 
   const threatColor = getThreatColor();
 
   return (
-    <div className="absolute top-6 left-6 space-y-4">
+    <div className="space-y-2">
       {/* Main Status */}
-      <div className={`font-mono text-2xl font-bold transition-all duration-300 ${glitch ? 'animate-pulse text-red-400' : 'text-emerald-400'}`}>
-        <div className={`flex items-center gap-3 ${glitch ? 'filter blur-sm' : ''}`}>
-          <Shield className={`w-8 h-8 ${isOnline ? 'text-emerald-400' : 'text-red-400'} ${glitch ? 'animate-spin' : ''}`} />
+      <div className={`font-mono text-sm font-bold transition-all duration-300 ${glitch ? 'animate-pulse text-red-400' : 'text-emerald-400'}`}>
+        <div className={`flex items-center gap-1.5 ${glitch ? 'filter blur-sm' : ''}`}>
+          <Shield className={`w-4 h-4 ${isOnline ? 'text-emerald-400' : 'text-red-400'} ${glitch ? 'animate-spin' : ''}`} />
           <span className={glitch ? 'glitch-text' : ''}>
             DREADNODE: {isOnline ? 'ONLINE' : 'OFFLINE'}
           </span>
@@ -42,39 +41,41 @@ const StatusDisplay = ({ isOnline, threatLevel }: StatusDisplayProps) => {
       </div>
 
       {/* System Stats */}
-      <div className="space-y-2 font-mono text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-          <span className="text-gray-300">Neural Network: </span>
+      <div className="space-y-1 font-mono text-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-gray-300">Neural Network:</span>
+          </div>
           <span className="text-emerald-400">Active</span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 bg-${threatColor}-400 rounded-full animate-pulse`} />
-          <span className="text-gray-300">Threat Level: </span>
-          <span className={`text-${threatColor}-400`}>{threatLevel}%</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 ${threatLevel > 70 ? 'bg-red-400' : threatLevel > 30 ? 'bg-amber-400' : 'bg-emerald-400'} rounded-full animate-pulse`} />
+            <span className="text-gray-300">Threat Level:</span>
+          </div>
+          <span className={threatColor}>{threatLevel.toFixed(0)}%</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-          <span className="text-gray-300">AI Agents: </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+            <span className="text-gray-300">AI Agents:</span>
+          </div>
           <span className="text-cyan-400">7 Active</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-          <span className="text-gray-300">Blockchain: </span>
-          <span className="text-amber-400">Syncing...</span>
         </div>
       </div>
 
       {/* Threat Indicator */}
       {threatLevel > 0 && (
-        <div className="mt-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
-          <div className="text-red-300 font-mono text-xs font-bold">DEFENSIVE PROTOCOL ACTIVE</div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+        <div className="mt-2 p-2 bg-red-900/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
+          <div className="text-red-300 font-mono text-xs font-bold mb-1">DEFENSIVE PROTOCOL ACTIVE</div>
+          <div className="w-full bg-gray-700 rounded-full h-1.5">
             <div 
-              className={`h-2 rounded-full bg-gradient-to-r from-${threatColor}-500 to-${threatColor}-400 transition-all duration-500`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                threatLevel > 70 ? 'bg-red-500' : threatLevel > 30 ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
               style={{ width: `${threatLevel}%` }}
             />
           </div>

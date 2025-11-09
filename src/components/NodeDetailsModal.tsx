@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { X, Activity, Shield, Brain } from 'lucide-react';
-import { NodeData } from '../types/NodeData';
+import { Node } from '../store/simulationStore';
 
 interface NodeDetailsModalProps {
-  node: NodeData;
+  node: Node | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -26,7 +26,7 @@ const NodeDetailsModal = ({ node, isOpen, onClose }: NodeDetailsModalProps) => {
     }
   }, [isOpen]);
   
-  if (!isOpen) return null;
+  if (!isOpen || !node) return null;
   
   const getStatusColor = (status: string) => {
     switch (status) {
